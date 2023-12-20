@@ -8,6 +8,7 @@ static uint8_t sck_cnt;
 #define SCK_L() GPIOB->BCR = GPIO_Pin_3
 #define SDI()   ((GPIOB->INDR & GPIO_Pin_4) != 0 ? 1 : 0)
 
+static uint8_t speed_mode = HX711_LS;
 void HX711_Init(uint8_t mode) {
     GPIO_InitTypeDef GPIO_InitStructure = {0};
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
@@ -19,6 +20,7 @@ void HX711_Init(uint8_t mode) {
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
     GPIO_Init(GPIOA, &GPIO_InitStructure);
     GPIO_WriteBit(GPIOA, GPIO_Pin_15, mode == HX711_HS ? Bit_SET : Bit_RESET);
+    speed_mode = mode;
 
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;   // SCK
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
@@ -37,13 +39,11 @@ void HX711_Switch(uint8_t ck) {
         return;
 
     if (!HX711_Ready())
-        Delay_Ms(50);
+        Delay_Ms(speed_mode == HX711_HS ? 50 : 400);
 
     sck_cnt = ck;
     HX711_GetValue();
-    Delay_Ms(50);
-    for (uint8_t i = 0; i < 5; i++)
-        HX711_GetValue();
+    Delay_Ms(speed_mode == HX711_HS ? 50 : 400);
 }
 
 uint8_t HX711_Ready() {
