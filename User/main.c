@@ -48,14 +48,15 @@ uint16_t VBAT_Get() {
     float vbat = 0;
     while (!HX711_Ready());
     vbat += (float) HX711_GetValue() / 0x7FFFFF * 80 * 69 * 1.11f;
-    while (!HX711_Ready());
-    vbat += (float) HX711_GetValue() / 0x7FFFFF * 80 * 69 * 1.11f;
-    while (!HX711_Ready());
-    vbat += (float) HX711_GetValue() / 0x7FFFFF * 80 * 69 * 1.11f;
-    while (!HX711_Ready());
-    vbat += (float) HX711_GetValue() / 0x7FFFFF * 80 * 69 * 1.11f;
+//    while (!HX711_Ready());
+//    vbat += (float) HX711_GetValue() / 0x7FFFFF * 80 * 69 * 1.11f;
+//    while (!HX711_Ready());
+//    vbat += (float) HX711_GetValue() / 0x7FFFFF * 80 * 69 * 1.11f;
+//    while (!HX711_Ready());
+//    vbat += (float) HX711_GetValue() / 0x7FFFFF * 80 * 69 * 1.11f;
+//    vbat = vbat / 4;
 
-    return (int) (vbat / 4); // mV
+    return (int) vbat; // mV
 }
 
 float SCL_Get() {
@@ -64,13 +65,13 @@ float SCL_Get() {
     float scl = 0;
     while (!HX711_Ready());
     scl += (float) HX711_GetValue() / 0x7FFFFF * 20.0f;
-    while (!HX711_Ready());
-    scl += (float) HX711_GetValue() / 0x7FFFFF * 20.0f;
-    while (!HX711_Ready());
-    scl += (float) HX711_GetValue() / 0x7FFFFF * 20.0f;
-    while (!HX711_Ready());
-    scl += (float) HX711_GetValue() / 0x7FFFFF * 20.0f;
-    scl = scl / 4;
+//    while (!HX711_Ready());
+//    scl += (float) HX711_GetValue() / 0x7FFFFF * 20.0f;
+//    while (!HX711_Ready());
+//    scl += (float) HX711_GetValue() / 0x7FFFFF * 20.0f;
+//    while (!HX711_Ready());
+//    scl += (float) HX711_GetValue() / 0x7FFFFF * 20.0f;
+//    scl = scl / 4;
 
     scl = scl * 2000; // 0.5uV
 
@@ -86,7 +87,7 @@ int main(void) {
     GPIOx_Init();
     TIMx_Init();
 
-    HX711_Init(HX711_HS); // 100Hz
+    HX711_Init(HX711_LS); // 12.5Hz
     OLED_Init();
 
     OLED_Printfc(0, 2, 1, "NSSCL");
@@ -124,8 +125,8 @@ int main(void) {
         } else if (!TPA() && tpa_down) {
             tpa_down = false;
             gui_index += 1;
-            OLED_Clear();
             Delay_Ms(1000);
+            OLED_Clear();
 
             pm = mass = 0;
             t16 = 0; t8 = 0;
@@ -136,35 +137,33 @@ int main(void) {
                 if (TPB() && !tpb_down) {
                     tpb_down = true;
                     OLED_Clear();
+                    OLED_Printfc(0, 2, 1, "ZERO");
                 } else if (!TPB() && tpb_down) {
                     tpb_down = false;
                     Delay_Ms(500);
                     zero = SCL_Get();
-                }
-
-                if (!tpb_down) {
+                    OLED_Clear();
+                } else if (!TPB() && !tpb_down) {
                     if (mass < -99.9f) mass = -99.9f;
                     if (mass > 999.9f) mass = 999.9f;
                     OLED_Printfc(0, 2, 1, "%3d.%1d", (int) mass, abs((int) ((mass - (int) mass) * 10)));
 
                     mass = SCL_Get() - zero;
-                } else {
-                    OLED_Printfc(0, 2, 1, "ZERO");
                 }
                 break;
             case 1: // Flow Rate
                 if (TPB() && !tpb_down) {
                     tpb_down = true;
                     OLED_Clear();
+                    OLED_Printfc(0, 2, 1, "ZERO");
                 } else if (!TPB() && tpb_down) {
                     tpb_down = false;
                     Delay_Ms(500);
                     zero = SCL_Get();
+                    OLED_Clear();
                     pm = mass = 0;
                     t8 = 0;
-                }
-
-                if (!tpb_down) {
+                } else if (!TPB() && !tpb_down) {
                     if (mass < -9.9f) mass = -9.9f;
                     if (mass > 99.9f) mass = 99.9f;
                     OLED_Printfc(0, 2, 1, "%2d.%1d %1d.%1d", (int) mass, abs((int) ((mass - (int) mass) * 10)), (int) dm, (int) ((dm - (int) dm) * 10));
@@ -173,31 +172,29 @@ int main(void) {
                         t8 += 1;
                     else {
                         t8 = 0;
-                        dm = (mass - pm) / (FLOW_RATE_CNT * 0.04f);
+                        dm = (mass - pm) / (FLOW_RATE_CNT * 0.08f);
                         dm = abs(dm);
                         if (dm > 9.9f) dm = 9.9f;
 
                         pm = mass;
                     }
-                    mass = SCL_Get() - zero; // ~40ms
-                } else {
-                    OLED_Printfc(0, 2, 1, "READY");
+                    mass = SCL_Get() - zero; // ~80ms
                 }
                 break;
             case 2: // Time
                 if (TPB() && !tpb_down) {
                     tpb_down = true;
                     OLED_Clear();
+                    OLED_Printfc(0, 2, 1, "READY");
                 } else if (!TPB() && tpb_down) {
                     tpb_down = false;
                     Delay_Ms(500);
                     zero = SCL_Get();
+                    OLED_Clear();
                     t16 = 0; t8 = 0;
                     TIM_Cmd(TIM2, DISABLE);
                     TIM2->CNT = 0;
-                }
-
-                if (!tpb_down) {
+                } else if (!TPB() && !tpb_down) {
                     if (mass < -99) mass = -99;
                     if (mass > 999) mass = 999;
                     OLED_Printfc(0, 2, 1, "%1d:%02d %3d", (t16 / 60) > 9 ? 9 : (t16 / 60), t16 % 60, (int) mass);
@@ -209,8 +206,6 @@ int main(void) {
                     mass = SCL_Get() - zero;
 
                     t16 = TIM2->CNT;
-                } else {
-                    OLED_Printfc(0, 2, 1, "READY");
                 }
                 break;
             case 3:
