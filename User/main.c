@@ -45,17 +45,33 @@ bool tpa_down = false, tpb_down = false;
 uint16_t VBAT_Get() {
     HX711_Switch(HX711_B_32);
 
+    float vbat = 0;
     while (!HX711_Ready());
-    float vbat = (float) HX711_GetValue() / 0x7FFFFF * 80 * 69 * 1.11f;
+    vbat += (float) HX711_GetValue() / 0x7FFFFF * 80 * 69 * 1.11f;
+    while (!HX711_Ready());
+    vbat += (float) HX711_GetValue() / 0x7FFFFF * 80 * 69 * 1.11f;
+    while (!HX711_Ready());
+    vbat += (float) HX711_GetValue() / 0x7FFFFF * 80 * 69 * 1.11f;
+    while (!HX711_Ready());
+    vbat += (float) HX711_GetValue() / 0x7FFFFF * 80 * 69 * 1.11f;
 
-    return (int) vbat; // mV
+    return (int) (vbat / 4); // mV
 }
 
 float SCL_Get() {
     HX711_Switch(HX711_A_128);
 
+    float scl = 0;
     while (!HX711_Ready());
-    float scl = (float) HX711_GetValue() / 0x7FFFFF * 20.0f;
+    scl += (float) HX711_GetValue() / 0x7FFFFF * 20.0f;
+    while (!HX711_Ready());
+    scl += (float) HX711_GetValue() / 0x7FFFFF * 20.0f;
+    while (!HX711_Ready());
+    scl += (float) HX711_GetValue() / 0x7FFFFF * 20.0f;
+    while (!HX711_Ready());
+    scl += (float) HX711_GetValue() / 0x7FFFFF * 20.0f;
+    scl = scl / 4;
+
     scl = scl * 2000; // 0.5uV
 
     return scl * 0.1013f - 34.24f;
@@ -70,7 +86,7 @@ int main(void) {
     GPIOx_Init();
     TIMx_Init();
 
-    HX711_Init(HX711_LS); // 12.5Hz
+    HX711_Init(HX711_HS); // 100Hz
     OLED_Init();
 
     OLED_Printfc(0, 2, 1, "NSSCL");
@@ -157,13 +173,13 @@ int main(void) {
                         t8 += 1;
                     else {
                         t8 = 0;
-                        dm = (mass - pm) / (FLOW_RATE_CNT * 0.08f);
+                        dm = (mass - pm) / (FLOW_RATE_CNT * 0.04f);
                         dm = abs(dm);
                         if (dm > 9.9f) dm = 9.9f;
 
                         pm = mass;
                     }
-                    mass = SCL_Get() - zero; // ~80ms
+                    mass = SCL_Get() - zero; // ~40ms
                 } else {
                     OLED_Printfc(0, 2, 1, "READY");
                 }
