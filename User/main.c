@@ -59,19 +59,19 @@ void TASK_Create() {
     UINT32 taskID1, taskID2, taskID3;
     TSK_INIT_PARAM_S stTask = { 0 };
     stTask.pfnTaskEntry = (TSK_ENTRY_FUNC) FUNC_Measure;
-    stTask.uwStackSize  = 0X500;
+    stTask.uwStackSize  = 0X100;
     stTask.pcName       = "Measure";
     stTask.usTaskPrio   = 6;/* high priority */
     LOS_TaskCreate(&taskID1, &stTask);
 
     stTask.pfnTaskEntry = (TSK_ENTRY_FUNC) FUNC_GUIShow;
-    stTask.uwStackSize  = 0X500;
+    stTask.uwStackSize  = 0X100;
     stTask.pcName       = "GUI";
     stTask.usTaskPrio   = 7;/* low priority */
     LOS_TaskCreate(&taskID2, &stTask);
 
     stTask.pfnTaskEntry = (TSK_ENTRY_FUNC) FUNC_KeyInput;
-    stTask.uwStackSize  = 0X500;
+    stTask.uwStackSize  = 0X100;
     stTask.pcName       = "Input";
     stTask.usTaskPrio   = 6;/* high priority */
     LOS_TaskCreate(&taskID3, &stTask);
@@ -118,8 +118,10 @@ void Periph_Init() {
 }
 
 int main(void) {
-    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
+    SystemInit();
     SystemCoreClockUpdate();
+    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
+
     OLED_Init();
     OLED_Print(0, 0, 0, 1, "NSSCL");
     while (1);
