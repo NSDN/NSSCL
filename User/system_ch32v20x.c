@@ -111,10 +111,10 @@ static void SetSysClockTo144_HSI( void );
 void SystemInit (void)
 {
   RCC->CTLR |= (uint32_t)0x00000001;
-  RCC->CFGR0 &= (uint32_t)0xF8FF0000;
+  RCC->CFGR0 &= (uint32_t)0xF0FF0000;
   RCC->CTLR &= (uint32_t)0xFEF6FFFF;
   RCC->CTLR &= (uint32_t)0xFFFBFFFF;
-  RCC->CFGR0 &= (uint32_t)0xFF80FFFF;
+  RCC->CFGR0 &= (uint32_t)0xFF00FFFF;
   RCC->INTR = 0x009F0000;    
   SetSysClock();
 }
@@ -205,6 +205,7 @@ void SystemCoreClockUpdate (void)
  */
 static void SetSysClock(void)
 {
+  //GPIO_IPD_Unused();
 #ifdef SYSCLK_FREQ_HSE
     SetSysClockToHSE();
 #elif defined SYSCLK_FREQ_48MHz_HSE
@@ -281,15 +282,15 @@ static void SetSysClockToHSE(void)
     /* PCLK1 = HCLK */
     RCC->CFGR0 |= (uint32_t)RCC_PPRE1_DIV1;
     
+    /* Select HSE as system clock source */
+    RCC->CFGR0 &= (uint32_t)((uint32_t)~(RCC_SW));
+    RCC->CFGR0 |= (uint32_t)RCC_SW_HSE;    
+
     /* Select HSE as system clock source
      *  CH32V20x_D6 (HSE=8MHZ)
      *  CH32V20x_D8 (HSE=32MHZ)
      *  CH32V20x_D8W (HSE=32MHZ)
      */
-    RCC->CFGR0 &= (uint32_t)((uint32_t)~(RCC_SW));
-    RCC->CFGR0 |= (uint32_t)RCC_SW_HSE;    
-
-    /* Wait till HSE is used as system clock source */
     while ((RCC->CFGR0 & (uint32_t)RCC_SWS) != (uint32_t)0x04)
     {
     }

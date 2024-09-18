@@ -154,10 +154,12 @@ void OLED_Switch(uint8_t state) {
 
 void OLED_Char(uint8_t x, uint8_t y, uint8_t fid, uint8_t color, char c) {
     const uint8_t* font;
-    uint8_t f_w, f_h, f_o;
+    uint8_t f_w, f_h, f_o, f_e;
 
     font = FONT_Get(fid);
-    FONT_Size(font, &f_w, &f_h, &f_o);
+    FONT_Size(font, &f_w, &f_h, &f_o, &f_e);
+    if ((uint8_t) c > f_e)
+        c = (char) f_e;
     c -= f_o;
 
     if (x > OLED_WIDTH - f_w) { x = 0; y += f_h / 8; }
@@ -178,7 +180,7 @@ void OLED_Print(uint8_t x, uint8_t y, uint8_t fid, uint8_t color, char* str) {
     uint8_t f_w, f_h, pos;
 
     font = FONT_Get(fid);
-    FONT_Size(font, &f_w, &f_h, &pos); // pos unused
+    FONT_Size(font, &f_w, &f_h, &pos, &pos); // pos unused
 
     pos = 0;
     while (str[pos] != '\0') {
@@ -213,7 +215,7 @@ int OLED_Printf(uint8_t x, uint8_t y, uint8_t fid, uint8_t color, const char* fo
 
 int OLED_Printfc(uint8_t y, uint8_t fid, uint8_t color, const char* format, ...) {
     uint8_t f_w, f_h, len;
-    FONT_Size(FONT_Get(fid), &f_w, &f_h, &len); // len unused
+    FONT_Size(FONT_Get(fid), &f_w, &f_h, &len, &len); // len unused
 
     char* iobuf = malloc(sizeof(char) * IOBUF_SIZE);
     va_list args;

@@ -10,8 +10,8 @@ Vendor=WCH
 Link=WCH-Link
 Toolchain=RISC-V
 Series=CH32V203
-RTOS=NoneOS
-Description=Website: http://www.wch.cn/products/CH32V203.html?\nROM(byte): 32K, SRAM(byte): 10K, CHIP PINS: 28, GPIO PORTS: 24.\nWCH CH32V2 series of mainstream MCUs covers the needs of a large variety of applications in the industrial,medical and consumer markets. High performance with first-class peripherals and low-power,low-voltage operation is paired with a high level of integration at accessible prices with a simple architecture and easy-to-use tools.
+RTOS=Harmnony LiteOS-M
+MCU=CH32V203-LiteOS_m
+Description=ROM(byte): 64K, SRAM(byte): 20K, CHIP PINS: 32, GPIO PORTS: 27.\nWCH CH32V2 series of mainstream MCUs covers the needs of a large variety of applications in the industrial,medical and consumer markets. High performance with first-class peripherals and low-power,low-voltage operation is paired with a high level of integration at accessible prices with a simple architecture and easy-to-use tools.
 
-PeripheralVersion=1.8
-MCU=CH32V203G6U6
+PeripheralVersion=2.1
