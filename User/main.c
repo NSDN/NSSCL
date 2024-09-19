@@ -244,41 +244,15 @@ void FUNC_GUIShow(uint32_t arg) {
         if (mode_sw) {
             mode_sw = false;
 
-            OLED_Print(111, 0, 1, 1, "| ");
-            OLED_Print(111, 1, 1, 1, "| ");
-            OLED_Print(111, 2, 1, 1, "| ");
-            OLED_Print(111, 3, 1, 1, "| ");
+            OLED_Char(111, 0, 4, 1, 0x00);  // IMG_NONE
         }
 
         if (p_mode ^ mode) {
             p_mode = mode;
-            OLED_Clear();
 
-            switch (mode) {
-            case Mode_Normal:
-                OLED_Print(111, 0, 1, 1, "|N");
-                OLED_Print(111, 1, 1, 1, "|O");
-                OLED_Print(111, 2, 1, 1, "|R");
-                OLED_Print(111, 3, 1, 1, "|M");
-                break;
-            case Mode_FlowRate:
-                OLED_Print(111, 0, 1, 1, "|R");
-                OLED_Print(111, 1, 1, 1, "|A");
-                OLED_Print(111, 2, 1, 1, "|T");
-                OLED_Print(111, 3, 1, 1, "|E");
-                break;
-            case Mode_Timestop:
-                OLED_Print(111, 0, 1, 1, "|T");
-                OLED_Print(111, 1, 1, 1, "|I");
-                OLED_Print(111, 2, 1, 1, "|M");
-                OLED_Print(111, 3, 1, 1, "|E");
-                break;
-            case Mode_Battery:
-                OLED_Print(111, 0, 1, 1, "|B");
-                OLED_Print(111, 1, 1, 1, "|A");
-                OLED_Print(111, 2, 1, 1, "|T");
-                OLED_Print(111, 3, 1, 1, "|T");
-                break;
+            OLED_Clear();
+            if (mode > Mode_Begin && mode < Mode_End) {
+                OLED_Char(111, 0, 4, 1, mode);  // IMG_NOR, IMG_FLO, IMG_TIM, IMG_BAT
             }
         }
 
