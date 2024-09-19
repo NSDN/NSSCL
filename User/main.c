@@ -29,7 +29,6 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "debug.h"
 #include "los_tick.h"
 #include "los_task.h"
 #include "los_config.h"
@@ -44,7 +43,8 @@
 #include "hx711.h"
 
 /* Global define */
-#define FLOW_RATE_SPS   5
+#define FLOW_RATE_SPS   10
+#define MEAS_PERIOD     (uint32_t) (1000 / (FLOW_RATE_SPS))
 #define abs(v) ((v) < 0 ? -(v) : (v))
 
 void FUNC_Measure(uint32_t arg);
@@ -55,26 +55,33 @@ void FUNC_KeyInput(uint32_t arg);
 __attribute__((aligned (8))) UINT8 g_memStart[LOSCFG_SYS_HEAP_SIZE];
 
 /* Function Start */
-void TASK_Create() {
+UINT32 TASK_Create() {
+    UINT32 ret;
     UINT32 taskID1, taskID2, taskID3;
     TSK_INIT_PARAM_S stTask = { 0 };
+
     stTask.pfnTaskEntry = (TSK_ENTRY_FUNC) FUNC_Measure;
-    stTask.uwStackSize  = 0X100;
-    stTask.pcName       = "Measure";
+    stTask.uwStackSize  = 0X400;
+    stTask.pcName       = "MEAS";
     stTask.usTaskPrio   = 6;/* high priority */
-    LOS_TaskCreate(&taskID1, &stTask);
+    ret = LOS_TaskCreate(&taskID1, &stTask);
+    if (ret != LOS_OK) return ret;
 
     stTask.pfnTaskEntry = (TSK_ENTRY_FUNC) FUNC_GUIShow;
-    stTask.uwStackSize  = 0X100;
+    stTask.uwStackSize  = 0X400;
     stTask.pcName       = "GUI";
     stTask.usTaskPrio   = 7;/* low priority */
-    LOS_TaskCreate(&taskID2, &stTask);
+    ret = LOS_TaskCreate(&taskID2, &stTask);
+    if (ret != LOS_OK) return ret;
 
     stTask.pfnTaskEntry = (TSK_ENTRY_FUNC) FUNC_KeyInput;
-    stTask.uwStackSize  = 0X100;
+    stTask.uwStackSize  = 0X400;
     stTask.pcName       = "Input";
-    stTask.usTaskPrio   = 6;/* high priority */
-    LOS_TaskCreate(&taskID3, &stTask);
+    stTask.usTaskPrio   = 7;/* low priority */
+    ret = LOS_TaskCreate(&taskID3, &stTask);
+    if (ret != LOS_OK) return ret;
+
+    return LOS_OK;
 }
 
 void GPIOx_Init() {
@@ -107,45 +114,37 @@ void TIMx_Init() {
 }
 
 void Periph_Init() {
-    Delay_Init();
     GPIOx_Init();
     TIMx_Init();
 
-    HX711_Init(HX711_LS);   // 12.5Hz
+    HX711_Init(HX711_LS);
     OLED_Init();
-    OLED_Printfc(1, 2, 1, "NSSCL");
-    Delay_Ms(500);
 }
 
-int main(void) {
-    SystemInit();
-    SystemCoreClockUpdate();
+LITE_OS_SEC_TEXT_INIT int main(void) {
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
+    SystemCoreClockUpdate();
+    Periph_Init();
 
-    OLED_Init();
-    OLED_Print(0, 0, 0, 1, "NSSCL");
-    while (1);
+    UINT32 k_i, t_c, o_s;
+    k_i = LOS_KernelInit();
+    t_c = TASK_Create();
+    o_s = LOS_Start();
+
+    if ((k_i + t_c + o_s) != LOS_OK) {
+        OLED_Printf(0, 0, 0, 1, "KE: %08X", k_i);
+        OLED_Printf(0, 1, 0, 1, "TA: %08X", t_c);
+        OLED_Printf(0, 2, 0, 1, "OS: %08X", o_s);
+    }
+
+    while (1) {
+        __asm volatile("nop");
+    }
 }
-
-//LITE_OS_SEC_TEXT_INIT int main(void) {
-//    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
-//    SystemCoreClockUpdate();
-//	Periph_Init();
-//
-//    UINT32 ret = LOS_KernelInit();
-//    TASK_Create();
-//    if (ret == LOS_OK) {
-//        LOS_Start();
-//    }
-//
-//    while (1) {
-//        __asm volatile("nop");
-//    }
-//}
 
 /* Local Variable & Function */
 uint16_t vbat = 0;
-float mass = 0, dmass = 0;
+float mass = 0, dmass = 0, pmass = 0;
 
 uint16_t VBAT_Get() {
     HX711_Switch(HX711_B_32);
@@ -158,6 +157,30 @@ uint16_t VBAT_Get() {
     return (int) vbat; // mV
 }
 
+uint8_t VBAT_Percent(uint16_t mv) {
+    if (mv >= 4200) {
+        return 100;
+    } else if (mv >= 4000) {
+        return 90 + (mv - 4000) / 20;  // 90% ~ 100%
+    } else if (mv >= 3800) {
+        return 70 + (mv - 3800) / 10;  // 70% ~ 90%
+    } else if (mv >= 3700) {
+        return 50 + (mv - 3700) / 10;  // 50% ~ 70%
+    } else if (mv >= 3600) {
+        return 40 + (mv - 3600) / 10;  // 40% ~ 50%
+    } else if (mv >= 3500) {
+        return 30 + (mv - 3500) / 10;  // 30% ~ 40%
+    } else if (mv >= 3400) {
+        return 20 + (mv - 3400) / 10;  // 20% ~ 30%
+    } else if (mv >= 3300) {
+        return 10 + (mv - 3300) / 10;  // 10% ~ 20%
+    } else if (mv >= 3200) {
+        return (mv - 3200) / 10;  // 0% ~ 10%
+    } else {
+        return 0;
+    }
+}
+
 float SCL_Get() {
     HX711_Switch(HX711_A_128);
 
@@ -167,24 +190,7 @@ float SCL_Get() {
     scl += (float) HX711_GetValue() / 0x7FFFFF * 20.0f;
 
     scl = scl * 2000; // 0.5uV
-
     return scl * 0.1013f - 34.24f;
-}
-
-void FUNC_Measure(uint32_t arg) {
-    uint32_t tick = 0;
-    float pmass = 0;
-
-    while (1) {
-        tick = LOS_TickCountGet();
-        vbat = VBAT_Get();
-        pmass = mass;
-        mass = SCL_Get();
-        dmass = (mass - pmass) * (float) (FLOW_RATE_SPS);
-
-        tick = LOS_TickCountGet() - tick;
-        LOS_TaskDelay((1000 / (uint32_t) (FLOW_RATE_SPS)) - tick);
-    }
 }
 
 enum {
@@ -196,35 +202,91 @@ enum {
     Mode_End
 } p_mode = Mode_End, mode = Mode_Begin;
 
+void FUNC_Measure(uint32_t arg) {
+    __IO uint32_t tick = 0;
+
+    while (1) {
+        tick = LOS_TickCountGet();
+
+        if (mode == Mode_Battery) {
+            vbat = VBAT_Get();
+        } else {
+            pmass = mass;
+            mass = SCL_Get();
+            dmass = (mass - pmass) * (float) (FLOW_RATE_SPS);
+        }
+
+        tick = LOS_TickCountGet() - tick;
+        if (tick < MEAS_PERIOD)
+            LOS_TaskDelay(MEAS_PERIOD - tick);
+    }
+}
+
 float zero = 0;
+bool zero_start = false;
 bool time_start = false;
 
 void SCL_Zero() {
-    LOS_TaskDelay(500);
+    zero_start = true;
+    LOS_TaskDelay(1000);
     zero = mass;
+    zero_start = false;
 }
+
+bool mode_sw = false;
 
 void FUNC_GUIShow(uint32_t arg) {
     float f;
+    uint8_t t8;
     uint16_t t16;
 
     while (1) {
+        if (mode_sw) {
+            mode_sw = false;
+
+            OLED_Print(111, 0, 1, 1, "| ");
+            OLED_Print(111, 1, 1, 1, "| ");
+            OLED_Print(111, 2, 1, 1, "| ");
+            OLED_Print(111, 3, 1, 1, "| ");
+        }
+
         if (p_mode ^ mode) {
+            p_mode = mode;
             OLED_Clear();
 
-            if (mode > Mode_Begin && mode < Mode_End) {
-                OLED_Printf(103, 0, 0, mode != Mode_Normal, "NORM");
-                OLED_Printf(103, 1, 0, mode != Mode_FlowRate, "RATE");
-                OLED_Printf(103, 2, 0, mode != Mode_Timestop, "TIME");
-                OLED_Printf(103, 3, 0, mode != Mode_Battery, "BATT");
+            switch (mode) {
+            case Mode_Normal:
+                OLED_Print(111, 0, 1, 1, "|N");
+                OLED_Print(111, 1, 1, 1, "|O");
+                OLED_Print(111, 2, 1, 1, "|R");
+                OLED_Print(111, 3, 1, 1, "|M");
+                break;
+            case Mode_FlowRate:
+                OLED_Print(111, 0, 1, 1, "|R");
+                OLED_Print(111, 1, 1, 1, "|A");
+                OLED_Print(111, 2, 1, 1, "|T");
+                OLED_Print(111, 3, 1, 1, "|E");
+                break;
+            case Mode_Timestop:
+                OLED_Print(111, 0, 1, 1, "|T");
+                OLED_Print(111, 1, 1, 1, "|I");
+                OLED_Print(111, 2, 1, 1, "|M");
+                OLED_Print(111, 3, 1, 1, "|E");
+                break;
+            case Mode_Battery:
+                OLED_Print(111, 0, 1, 1, "|B");
+                OLED_Print(111, 1, 1, 1, "|A");
+                OLED_Print(111, 2, 1, 1, "|T");
+                OLED_Print(111, 3, 1, 1, "|T");
+                break;
             }
         }
 
         switch (mode) {
         case Mode_Begin:
-            OLED_Printfc(0, 2, 1, "NSSCL");
-            OLED_Printfc(2, 1, 1, "NyaSama Scale");
-            OLED_Printfc(3, 0, 1, "v1.0-LOS");
+            OLED_Printfc(0, 1, 1, "NyaSama LABO");
+            OLED_Printfc(1, 2, 1, "NSSCL");
+            OLED_Printfc(3, 0, 1, "--- LOS.v1 ---");
             SCL_Zero();
             mode = Mode_Normal;
             break;
@@ -232,36 +294,41 @@ void FUNC_GUIShow(uint32_t arg) {
             f = mass - zero;
             if (f < -99.9f) f = -99.9f;
             if (f > 999.9f) f = 999.9f;
+            if (zero_start) f = 0;
             OLED_Printf(8, 1, 3, 1, "%3d.%1d", (int) f, abs((int) ((f - (int) f) * 10)));
-            OLED_Printf(68, 1, 2, 1, "g");
+            OLED_Printf(68, 2, 1, 1, "g");
             break;
         case Mode_FlowRate:
             f = mass - zero;
             if (f < -9.9f) f = -9.9f;
             if (f > 99.9f) f = 99.9f;
-            OLED_Printf(8, 0, 1, 1, "MASS");
+            if (zero_start) f = 0;
+            OLED_Printf(8, 0, 0, 1, "MASS");
             OLED_Printf(8, 1, 3, 1, "%2d.%1d", (int) f, abs((int) ((f - (int) f) * 10)));
             OLED_Printf(48, 3, 1, 1, "g");
 
             f = abs(dmass);
             if (f > 9.9f) f = 9.9f;
-            OLED_Printf(64, 0, 1, 1, "RATE");
-            OLED_Printf(64, 1, 3, 1, "%1d.%1d", (int) f, abs((int) ((f - (int) f) * 10)));
-            OLED_Printf(76, 3, 1, 1, "g/s");
+            if (zero_start) f = 0;
+            OLED_Printf(66, 0, 0, 1, "RATE");
+            OLED_Printf(66, 1, 3, 1, "%1d.%1d", (int) f, abs((int) ((f - (int) f) * 10)));
+            OLED_Printf(78, 3, 1, 1, "g/s");
             break;
         case Mode_Timestop:
             f = mass - zero;
             if (f < -99.0f) f = -99.0f;
             if (f > 999.0f) f = 999.0f;
-            OLED_Printf(8, 0, 1, 1, "MASS");
+            if (zero_start) f = 0;
+            OLED_Printf(8, 0, 0, 1, "MASS");
             OLED_Printf(8, 1, 3, 1, "%3d", (int) f);
             OLED_Printf(36, 3, 1, 1, "g");
 
             t16 = TIM2->CNT;
             if (t16 > 5999) t16 = 5999;
-            OLED_Printf(50, 0, 1, 1, "TIME");
-            OLED_Printf(50, 1, 2, 1, "%2d:%02d", t16 / 60, t16 % 60);
-            OLED_Printf(76, 3, 1, 1, "m:s");
+            if (zero_start) t16 = 0;
+            OLED_Printf(52, 0, 0, 1, "TIME");
+            OLED_Printf(52, 1, 2, 1, "%2d:%02d", t16 / 60, t16 % 60);
+            OLED_Printf(78, 3, 1, 1, "m:s");
 
             if (!time_start && f > 1) {
                 time_start = true;
@@ -269,8 +336,24 @@ void FUNC_GUIShow(uint32_t arg) {
             }
             break;
         case Mode_Battery:
-            OLED_Printf(8, 1, 3, 1, "%1d.%03d", vbat / 1000, vbat % 1000);
-            OLED_Printf(68, 1, 2, 1, "V");
+            t16 = vbat;
+            if (t16 > 9999) t16 = 9999;
+            OLED_Printf(8, 0, 0, 1, "%1d.%03dV", t16 / 1000, t16 % 1000);
+            t8 = VBAT_Percent(t16);
+            if (t8 > 99) t8 = 99;
+            OLED_Printf(8, 1, 3, 1, "%2d", t8);
+            OLED_Printf(24, 3, 1, 1, "%%");
+            t8 /= 9;
+            LOS_TaskLock();
+            for (uint8_t i = 0; i < t8; i++) {
+                OLED_Char(40 + 6 * i, 1, 0, 0, ' ');
+                OLED_Char(40 + 6 * i, 2, 0, 0, ' ');
+            }
+            for (uint8_t i = t8; i < 11; i++) {
+                OLED_Char(40 + 6 * i, 1, 0, 1, ' ');
+                OLED_Char(40 + 6 * i, 2, 0, 1, ' ');
+            }
+            LOS_TaskUnlock();
             break;
         default:
             break;
@@ -299,6 +382,8 @@ void FUNC_KeyInput(uint32_t arg) {
                     TIM2->CNT = 0;
                     time_start = false;
                 }
+            } else {
+                mode_sw = true;
             }
         }
 
@@ -318,8 +403,6 @@ void FUNC_KeyInput(uint32_t arg) {
                     TIM_Cmd(TIM2, DISABLE);
                     TIM2->CNT = 0;
                     time_start = false;
-                    break;
-                case Mode_Battery:
                     break;
                 default:
                     break;

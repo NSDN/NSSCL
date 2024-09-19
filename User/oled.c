@@ -7,10 +7,11 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "los_task.h"
+
 static uint8_t buffer[OLED_WIDTH];
 
-void IIC_Init(uint32_t freq)
-{
+void IIC_Init(uint32_t freq) {
     GPIO_InitTypeDef GPIO_InitStructure = {0};
     I2C_InitTypeDef  I2C_InitTSturcture = {0};
 
@@ -133,14 +134,17 @@ void OLED_Init() {
 }
 
 void OLED_Clear() {
+    LOS_TaskLock();
     for (uint8_t m = 0; m < OLED_HEIGHT / 8; m++) {
         pos(0, m);
         memset(buffer, 0, OLED_WIDTH);
         dats(buffer, OLED_WIDTH);
     }
+    LOS_TaskUnlock();
 }
 
 void OLED_Switch(uint8_t state) {
+    LOS_TaskLock();
     if (state != 0) {
         cmd(0x8D);
         cmd(0x14);
@@ -150,6 +154,7 @@ void OLED_Switch(uint8_t state) {
         cmd(0x10);
         cmd(0xAE);
     }
+    LOS_TaskUnlock();
 }
 
 void OLED_Char(uint8_t x, uint8_t y, uint8_t fid, uint8_t color, char c) {
@@ -157,7 +162,7 @@ void OLED_Char(uint8_t x, uint8_t y, uint8_t fid, uint8_t color, char c) {
     uint8_t f_w, f_h, f_o, f_e;
 
     font = FONT_Get(fid);
-    FONT_Size(font, &f_w, &f_h, &f_o, &f_e);
+    FONT_Info(font, &f_w, &f_h, &f_o, &f_e);
     if ((uint8_t) c > f_e)
         c = (char) f_e;
     c -= f_o;
@@ -176,21 +181,26 @@ void OLED_Char(uint8_t x, uint8_t y, uint8_t fid, uint8_t color, char c) {
 }
 
 void OLED_Print(uint8_t x, uint8_t y, uint8_t fid, uint8_t color, char* str) {
-    const uint8_t* font;
-    uint8_t f_w, f_h, pos;
+    uint8_t f_w, f_h, ptr;
+    FONT_Size(FONT_Get(fid), &f_w, &f_h);
 
-    font = FONT_Get(fid);
-    FONT_Size(font, &f_w, &f_h, &pos, &pos); // pos unused
-
-    pos = 0;
-    while (str[pos] != '\0') {
-        if (y > (OLED_HEIGHT - f_h) / 8) { x = 0; y = 0; OLED_Clear(); }
-        switch (str[pos]) {
+    LOS_TaskLock();
+    ptr = 0;
+    while (str[ptr] != '\0') {
+        if (y > (OLED_HEIGHT - f_h) / 8) {
+            x = 0; y = 0;
+            for (uint8_t m = 0; m < OLED_HEIGHT / 8; m++) {
+                pos(0, m);
+                memset(buffer, 0, OLED_WIDTH);
+                dats(buffer, OLED_WIDTH);
+            }
+        }
+        switch (str[ptr]) {
             case '\n':
                 x = 0; y += f_h / 8;
                 break;
             default:
-                OLED_Char(x, y, fid, color, str[pos]);
+                OLED_Char(x, y, fid, color, str[ptr]);
                 x += f_w;
                 if (x > OLED_WIDTH - f_w) {
                     x = 0;
@@ -198,33 +208,32 @@ void OLED_Print(uint8_t x, uint8_t y, uint8_t fid, uint8_t color, char* str) {
                 }
                 break;
         }
-        pos++;
+        ptr++;
     }
+    LOS_TaskUnlock();
 }
 
+static char iobuf[IOBUF_SIZE];
+
 int OLED_Printf(uint8_t x, uint8_t y, uint8_t fid, uint8_t color, const char* format, ...) {
-    char* iobuf = malloc(sizeof(char) * IOBUF_SIZE);
     va_list args;
     va_start(args, format);
     int result = vsprintf(iobuf, format, args);
     va_end(args);
     OLED_Print(x, y, fid, color, iobuf);
-    free(iobuf);
     return result;
 }
 
 int OLED_Printfc(uint8_t y, uint8_t fid, uint8_t color, const char* format, ...) {
     uint8_t f_w, f_h, len;
-    FONT_Size(FONT_Get(fid), &f_w, &f_h, &len, &len); // len unused
+    FONT_Size(FONT_Get(fid), &f_w, &f_h);
 
-    char* iobuf = malloc(sizeof(char) * IOBUF_SIZE);
     va_list args;
     va_start(args, format);
     int result = vsprintf(iobuf, format, args);
     va_end(args);
     len = strlen(iobuf);
     OLED_Print(OLED_WIDTH / 2 - len * f_w / 2, y, fid, color, iobuf);
-    free(iobuf);
     return result;
 }
 

@@ -61,8 +61,8 @@ extern uint32_t SystemCoreClock;
 /*=============================================================================
                                        Task module configuration
 =============================================================================*/
-#define LOSCFG_BASE_CORE_TSK_LIMIT                          12
-#define LOSCFG_BASE_CORE_TSK_IDLE_STACK_SIZE                (0x500U)
+#define LOSCFG_BASE_CORE_TSK_LIMIT                          4
+#define LOSCFG_BASE_CORE_TSK_IDLE_STACK_SIZE                (0x400U)
 #define LOSCFG_BASE_CORE_TSK_DEFAULT_STACK_SIZE             (0x2D0U)
 #define LOSCFG_BASE_CORE_TSK_MIN_STACK_SIZE                 (0x130U)
 #define LOSCFG_BASE_CORE_TIMESLICE                          1
@@ -71,34 +71,30 @@ extern uint32_t SystemCoreClock;
 /*=============================================================================
                                        Semaphore module configuration
 =============================================================================*/
-#define LOSCFG_BASE_IPC_SEM                                 1
-#define LOSCFG_BASE_IPC_SEM_LIMIT                           48
+#define LOSCFG_BASE_IPC_SEM                                 0
+#define LOSCFG_BASE_IPC_SEM_LIMIT                           0
 /*=============================================================================
                                        Mutex module configuration
 =============================================================================*/
-#define LOSCFG_BASE_IPC_MUX                                 1
-#define LOSCFG_BASE_IPC_MUX_LIMIT                           10
+#define LOSCFG_BASE_IPC_MUX                                 0
+#define LOSCFG_BASE_IPC_MUX_LIMIT                           0
 /*=============================================================================
                                        Queue module configuration
 =============================================================================*/
-#define LOSCFG_BASE_IPC_QUEUE                               1
-#define LOSCFG_BASE_IPC_QUEUE_LIMIT                         6
+#define LOSCFG_BASE_IPC_QUEUE                               0
+#define LOSCFG_BASE_IPC_QUEUE_LIMIT                         0
 /*=============================================================================
                                        Software timer module configuration
 =============================================================================*/
-#define LOSCFG_BASE_CORE_SWTMR                              1
-#define LOSCFG_BASE_CORE_SWTMR_ALIGN                        1
-#define LOSCFG_BASE_CORE_SWTMR_LIMIT                        6
+#define LOSCFG_BASE_CORE_SWTMR                              0
+#define LOSCFG_BASE_CORE_SWTMR_ALIGN                        0
+#define LOSCFG_BASE_CORE_SWTMR_LIMIT                        0
 /*=============================================================================
                                        Memory module configuration
 =============================================================================*/
-#define LOSCFG_SYS_HEAP_SIZE                                0x04000UL
-#define OS_SYS_MEM_SIZE                                     0x00000800
+#define LOSCFG_SYS_HEAP_SIZE                                0x00001800UL
 #define LOSCFG_BASE_MEM_NODE_INTEGRITY_CHECK                0
-#define LOSCFG_BASE_MEM_NODE_SIZE_CHECK                     1
 #define LOSCFG_MEM_MUL_POOL                                 0
-#define OS_SYS_MEM_NUM                                      20
-#define LOSCFG_KERNEL_MEM_SLAB                              0
 /*=============================================================================
                                        Exception module configuration
 =============================================================================*/
@@ -106,7 +102,7 @@ extern uint32_t SystemCoreClock;
 /* =============================================================================
                                        printf module configuration
 ============================================================================= */
-#define LOSCFG_KERNEL_PRINTF                                1
+#define LOSCFG_KERNEL_PRINTF                                0
 /* =============================================================================
                                        enable backtrace
 ============================================================================= */

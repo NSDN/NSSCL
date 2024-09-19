@@ -1,6 +1,5 @@
 #include "hx711.h"
 
-#include "debug.h"
 #include "los_task.h"
 
 static uint8_t sck_cnt;
@@ -47,10 +46,20 @@ void HX711_Switch(uint8_t ck) {
     LOS_TaskDelay(speed_mode == HX711_HS ? 50 : 400);
 }
 
+extern uint32_t SystemCoreClock;
+
+void delay_us(uint32_t t) {
+    uint32_t c_us = SystemCoreClock / 1000000;
+    uint32_t n = c_us * t;
+    while (n--) {
+        __asm volatile ("nop");
+    }
+}
+
 uint8_t HX711_Ready() {
     LOS_TaskLock();
     if (SDI() == 0) {
-        Delay_Us(1);
+        delay_us(1);
         LOS_TaskUnlock();
         return 1;
     }
@@ -65,9 +74,9 @@ int32_t HX711_GetValue() {
         uint8_t count = 0;
         for (uint8_t i = 0; i < sck_cnt; i++) {
             SCK_H();
-            Delay_Us(1);
+            delay_us(1);
             SCK_L();
-            Delay_Us(1);
+            delay_us(1);
 
             if (count < 24) {
                 dat <<= 1;
