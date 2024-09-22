@@ -258,9 +258,7 @@ void FUNC_GUIShow(uint32_t arg) {
 
         switch (mode) {
         case Mode_Begin:
-            OLED_Printfc(0, 1, 1, "NyaSama LABO");
-            OLED_Printfc(1, 2, 1, "NSSCL");
-            OLED_Printfc(3, 0, 1, "--- LOS.v1 ---");
+            OLED_Char(0, 0, 6, 1, 0x00); // BOOT LOGO
             SCL_Zero();
             mode = Mode_Normal;
             break;
@@ -277,32 +275,32 @@ void FUNC_GUIShow(uint32_t arg) {
             if (f < -9.9f) f = -9.9f;
             if (f > 99.9f) f = 99.9f;
             if (zero_start) f = 0;
-            OLED_Printf(8, 0, 0, 1, "MASS");
+            OLED_Char(8, 0, 5, 1, 0x00); // 质量
             OLED_Printf(8, 1, 3, 1, "%2d.%1d", (int) f, abs((int) ((f - (int) f) * 10)));
-            OLED_Printf(48, 3, 1, 1, "g");
+            OLED_Printf(50, 3, 0, 1, "g");
 
             f = abs(dmass);
             if (f > 9.9f) f = 9.9f;
             if (zero_start) f = 0;
-            OLED_Printf(66, 0, 0, 1, "RATE");
+            OLED_Char(66, 0, 5, 1, 0x01); // 流速
             OLED_Printf(66, 1, 3, 1, "%1d.%1d", (int) f, abs((int) ((f - (int) f) * 10)));
-            OLED_Printf(78, 3, 1, 1, "g/s");
+            OLED_Printf(84, 3, 0, 1, "g/s");
             break;
         case Mode_Timestop:
             f = mass - zero;
             if (f < -99.0f) f = -99.0f;
             if (f > 999.0f) f = 999.0f;
             if (zero_start) f = 0;
-            OLED_Printf(8, 0, 0, 1, "MASS");
+            OLED_Char(8, 0, 5, 1, 0x00); // 质量
             OLED_Printf(8, 1, 3, 1, "%3d", (int) f);
-            OLED_Printf(36, 3, 1, 1, "g");
+            OLED_Printf(38, 3, 0, 1, "g");
 
             t16 = TIM2->CNT;
             if (t16 > 5999) t16 = 5999;
             if (zero_start) t16 = 0;
-            OLED_Printf(52, 0, 0, 1, "TIME");
+            OLED_Char(52, 0, 5, 1, 0x02); // 时间
             OLED_Printf(52, 1, 2, 1, "%2d:%02d", t16 / 60, t16 % 60);
-            OLED_Printf(78, 3, 1, 1, "m:s");
+            OLED_Printf(84, 3, 0, 1, "m:s");
 
             if (!time_start && f > 1) {
                 time_start = true;
@@ -312,20 +310,20 @@ void FUNC_GUIShow(uint32_t arg) {
         case Mode_Battery:
             t16 = vbat;
             if (t16 > 9999) t16 = 9999;
-            OLED_Printf(8, 0, 0, 1, "%1d.%03dV", t16 / 1000, t16 % 1000);
+            OLED_Printf(8, 0, 0, 1, "%1d.%02dV", t16 / 1000, (t16 / 10) % 100);
             t8 = VBAT_Percent(t16);
             if (t8 > 99) t8 = 99;
             OLED_Printf(8, 1, 3, 1, "%2d", t8);
-            OLED_Printf(24, 3, 1, 1, "%%");
+            OLED_Printf(32, 2, 1, 1, "%%");
             t8 /= 9;
             LOS_TaskLock();
             for (uint8_t i = 0; i < t8; i++) {
-                OLED_Char(40 + 6 * i, 1, 0, 0, ' ');
-                OLED_Char(40 + 6 * i, 2, 0, 0, ' ');
+                OLED_Char(42 + 6 * i, 1, 0, 0, ' ');
+                OLED_Char(42 + 6 * i, 2, 0, 0, ' ');
             }
             for (uint8_t i = t8; i < 11; i++) {
-                OLED_Char(40 + 6 * i, 1, 0, 1, ' ');
-                OLED_Char(40 + 6 * i, 2, 0, 1, ' ');
+                OLED_Char(42 + 6 * i, 1, 0, 1, ' ');
+                OLED_Char(42 + 6 * i, 2, 0, 1, ' ');
             }
             LOS_TaskUnlock();
             break;

@@ -128,7 +128,7 @@ void OLED_Init() {
     cmd(0x20);
     cmd(0xA4);
     cmd(0x8D);  /*set charge pump enable*/
-    cmd(0x72);  /* 0x12:7.5V; 0x52:8V;  0x72:9V;  0x92:10V */
+    cmd(0x92);  /* 0x12:7.5V; 0x52:8V;  0x72:9V;  0x92:10V */
     OLED_Clear();
     cmd(0xAF);
 }
@@ -139,20 +139,6 @@ void OLED_Clear() {
         pos(0, m);
         memset(buffer, 0, OLED_WIDTH);
         dats(buffer, OLED_WIDTH);
-    }
-    LOS_TaskUnlock();
-}
-
-void OLED_Switch(uint8_t state) {
-    LOS_TaskLock();
-    if (state != 0) {
-        cmd(0x8D);
-        cmd(0x14);
-        cmd(0xAF);
-    } else {
-        cmd(0x8D);
-        cmd(0x10);
-        cmd(0xAE);
     }
     LOS_TaskUnlock();
 }
