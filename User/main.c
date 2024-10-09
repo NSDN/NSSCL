@@ -43,8 +43,9 @@
 #include "hx711.h"
 
 /* Global define */
-#define FLOW_RATE_SPS   10
-#define MEAS_PERIOD     (uint32_t) (1000 / (FLOW_RATE_SPS))
+#define MEAS_PERIOD         100
+#define FLOW_RATE_CNT       5
+#define FLOW_RATE_FACTOR    ((1000 / MEAS_PERIOD) / FLOW_RATE_CNT)
 #define abs(v) ((v) < 0 ? -(v) : (v))
 
 void FUNC_Measure(uint32_t arg);
@@ -204,6 +205,7 @@ enum {
 
 void FUNC_Measure(uint32_t arg) {
     __IO uint32_t tick = 0;
+    __IO uint8_t count = 0;
 
     while (1) {
         tick = LOS_TickCountGet();
@@ -211,9 +213,18 @@ void FUNC_Measure(uint32_t arg) {
         if (mode == Mode_Battery) {
             vbat = VBAT_Get();
         } else {
-            pmass = mass;
+            if (count == 0)
+                pmass = mass;
+
             mass = SCL_Get();
-            dmass = (mass - pmass) * (float) (FLOW_RATE_SPS);
+
+            if (count == FLOW_RATE_CNT)
+                dmass = (mass - pmass) * FLOW_RATE_FACTOR;
+
+            if (count < FLOW_RATE_CNT)
+                count += 1;
+            else
+                count = 0;
         }
 
         tick = LOS_TickCountGet() - tick;
